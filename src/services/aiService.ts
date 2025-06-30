@@ -14,7 +14,7 @@ export type AIModel =
 export interface AIRequest {
   prompt: string;
   context?: string;
-  type: 'content' | 'improve' | 'latex' | 'bibliography' | 'structure' | 'diagram' | 'outline';
+  type: 'content' | 'improve' | 'latex' | 'bibliography' | 'structure' | 'diagram' | 'outline' | 'rewrite' | 'enhance';
   model?: AIModel;
   complexity?: 'basic' | 'intermediate' | 'advanced';
 }
@@ -50,10 +50,11 @@ export class AIService {
       'bibliography': "mistralai/mistral-small-3.2-24b-instruct:free",
       'structure': "deepseek/deepseek-r1-0528:free",
       'diagram': "deepseek/deepseek-r1-0528-qwen3-8b:free",
-      'outline': "deepseek/deepseek-r1-0528:free"
+      'outline': "deepseek/deepseek-r1-0528:free",
+      'rewrite': "deepseek/deepseek-r1-0528:free",
+      'enhance': "mistralai/mistral-small-3.2-24b-instruct:free"
     };
-    // return modelMapping[type];
-    return modelMapping[type] || "deepseek/deepseek-r1-0528:free"; // Default to a common model
+    return modelMapping[type] || "deepseek/deepseek-r1-0528:free";
   }
 
   static async generateContent(request: AIRequest): Promise<string> {
@@ -65,7 +66,9 @@ export class AIService {
         bibliography: "You are a bibliography specialist. Create properly formatted BibTeX entries following academic standards. Include DOI, proper capitalization, and complete bibliographic information.",
         structure: "You are a thesis structure expert. Create detailed, logical thesis outlines with proper academic hierarchy, estimated page counts, and comprehensive section breakdowns.",
         diagram: "You are a technical diagram specialist. Generate detailed TikZ/LaTeX code for academic diagrams including flowcharts, architectural diagrams, timelines, and conceptual frameworks.",
-        outline: "You are an academic planning expert. Create detailed chapter outlines with learning objectives, key concepts, and logical progression suitable for thesis-level work."
+        outline: "You are an academic planning expert. Create detailed chapter outlines with learning objectives, key concepts, and logical progression suitable for thesis-level work.",
+        rewrite: "You are an expert thesis transformation specialist. Completely rewrite and restructure academic content while maintaining scholarly rigor. Transform topics, methodologies, and focus areas while preserving academic quality.",
+        enhance: "You are a content enhancement specialist. Dramatically improve academic content by adding depth, sophistication, and scholarly rigor. Enhance complexity and academic level while maintaining clarity."
       };
 
       const model = request.model || this.getOptimalModel(request.type);
@@ -85,14 +88,14 @@ export class AIService {
           }
         ],
         temperature: request.type === 'latex' || request.type === 'bibliography' ? 0.3 : 0.7,
-        max_tokens: request.type === 'structure' || request.type === 'content' ? 4000 : 2000
+        max_tokens: request.type === 'structure' || request.type === 'content' || request.type === 'rewrite' ? 4000 : 2000
       });
 
       return completion.choices[0]?.message?.content || "Unable to generate content. Please try again.";
     } catch (error) {
-  console.error('AI Service Error:', error);
-  throw new Error('Failed to generate AI content. Please check your connection and try again.');
-}
+      console.error('AI Service Error:', error);
+      throw new Error('Failed to generate AI content. Please check your connection and try again.');
+    }
   }
 
   static async generateThesisStructure(
@@ -116,12 +119,10 @@ export class AIService {
       complexity: academicLevel === 'phd' ? 'advanced' : academicLevel === 'master' ? 'intermediate' : 'basic'
     });
 
-    // Parse the generated structure (simplified implementation)
     return this.parseThesisStructure(structureText, title, academicLevel);
   }
 
   private static parseThesisStructure(text: string, title: string, level: ThesisStructure['academicLevel']): ThesisStructure {
-    // Simplified parsing - in practice, you'd implement robust parsing
     const defaultStructure: ThesisStructure = {
       title,
       academicLevel: level,
@@ -175,17 +176,17 @@ export class AIService {
       introduction: `Write a comprehensive introduction chapter for a ${academicLevel}-level thesis titled "${thesisTitle}". 
       Include: background with context and significance, clear problem statement with research questions, 
       specific objectives and hypotheses, scope and limitations, thesis structure overview, and contribution summary.
-      Use formal academic language with proper citations and examples.`,
+      Use formal academic language with proper citations and examples. Make it detailed and scholarly.`,
       
       literature: `Write an extensive literature review for "${thesisTitle}" at ${academicLevel} level. 
       Include: systematic review of relevant literature, theoretical frameworks, methodological approaches in the field,
       critical analysis of existing work, identification of research gaps, and positioning of current research.
-      Organize thematically with proper academic citations.`,
+      Organize thematically with proper academic citations. Ensure comprehensive coverage.`,
       
       methodology: `Write a detailed methodology chapter for "${thesisTitle}" at ${academicLevel} level.
       Include: research paradigm and philosophy, research design and approach, data collection methods,
       sampling strategy, data analysis techniques, validity and reliability measures, ethical considerations,
-      and limitations. Justify all methodological choices.`,
+      and limitations. Justify all methodological choices with academic rigor.`,
       
       results: `Write a comprehensive results and analysis chapter for "${thesisTitle}" at ${academicLevel} level.
       Include: presentation of findings, statistical analysis, interpretation of results, comparison with existing research,
@@ -196,7 +197,8 @@ export class AIService {
       recommendations for practice, suggestions for future research, and final reflections. Synthesize the entire work.`,
       
       default: `Write comprehensive academic content for a chapter titled "${title}" in a ${academicLevel}-level thesis about "${thesisTitle}".
-      Ensure scholarly depth, proper structure, academic language, and appropriate complexity for the academic level.`
+      Ensure scholarly depth, proper structure, academic language, and appropriate complexity for the academic level.
+      Include relevant examples, theoretical frameworks, and critical analysis.`
     };
 
     const chapterKey = chapterType.toLowerCase() as keyof typeof prompts;
@@ -206,6 +208,95 @@ export class AIService {
       prompt,
       type: 'content',
       complexity: complexityMap[academicLevel]
+    });
+  }
+
+  static async rewriteThesisForTopic(
+    currentTitle: string,
+    newTopic: string,
+    targetField: string,
+    academicLevel: 'bachelor' | 'master' | 'phd' = 'master'
+  ): Promise<{title: string, chapters: Array<{title: string, content: string}>}> {
+    const prompt = `Transform the thesis "${currentTitle}" to focus on "${newTopic}" in the field of "${targetField}".
+    
+    Generate:
+    1. A new professional thesis title
+    2. 5-7 comprehensive chapters with titles and detailed content
+    3. Ensure academic rigor appropriate for ${academicLevel} level
+    4. Include proper academic structure and scholarly language
+    5. Make each chapter substantial with theoretical frameworks, methodologies, and analysis
+    
+    Format the response as:
+    TITLE: [New thesis title]
+    
+    CHAPTER 1: [Chapter title]
+    [Detailed chapter content...]
+    
+    CHAPTER 2: [Chapter title]
+    [Detailed chapter content...]
+    
+    Continue for all chapters.`;
+
+    const result = await this.generateContent({
+      prompt,
+      type: 'rewrite',
+      complexity: academicLevel === 'phd' ? 'advanced' : academicLevel === 'master' ? 'intermediate' : 'basic'
+    });
+
+    return this.parseThesisRewrite(result);
+  }
+
+  private static parseThesisRewrite(text: string): {title: string, chapters: Array<{title: string, content: string}>} {
+    const lines = text.split('\n');
+    let title = '';
+    const chapters: Array<{title: string, content: string}> = [];
+    let currentChapter: {title: string, content: string} | null = null;
+
+    for (const line of lines) {
+      if (line.startsWith('TITLE:')) {
+        title = line.replace('TITLE:', '').trim();
+      } else if (line.match(/^CHAPTER \d+:/)) {
+        if (currentChapter) {
+          chapters.push(currentChapter);
+        }
+        currentChapter = {
+          title: line.replace(/^CHAPTER \d+:\s*/, '').trim(),
+          content: ''
+        };
+      } else if (currentChapter && line.trim()) {
+        currentChapter.content += line + '\n';
+      }
+    }
+
+    if (currentChapter) {
+      chapters.push(currentChapter);
+    }
+
+    return { title: title || 'Generated Thesis Title', chapters };
+  }
+
+  static async enhanceContentToLevel(
+    content: string,
+    targetLevel: 'bachelor' | 'master' | 'phd',
+    focus: 'depth' | 'complexity' | 'rigor' | 'all' = 'all'
+  ): Promise<string> {
+    const prompt = `Enhance this academic content to ${targetLevel} level with focus on ${focus}:
+
+"${content}"
+
+Requirements:
+- Increase academic sophistication and depth
+- Add theoretical frameworks and scholarly analysis
+- Include more complex concepts and methodologies
+- Enhance critical thinking and evaluation
+- Improve academic language and terminology
+- Add relevant examples and case studies
+- Ensure proper academic structure and flow`;
+
+    return this.generateContent({
+      prompt,
+      type: 'enhance',
+      complexity: targetLevel === 'phd' ? 'advanced' : targetLevel === 'master' ? 'intermediate' : 'basic'
     });
   }
 
@@ -256,16 +347,16 @@ export class AIService {
 
 "${text}"
 
-${focusPrompt} Maintain academic rigor while enhancing readability and precision.`,
+${focusPrompt} Maintain academic rigor while enhancing readability and precision. Add depth and sophistication where appropriate.`,
       type: 'improve'
     });
   }
 
   static async generateBibliography(topic: string, count: number = 10, style: 'recent' | 'foundational' | 'mixed' = 'mixed'): Promise<string> {
     const stylePrompt = {
-      recent: 'Focus on publications from the last 5 years',
+      recent: 'Focus on publications from the last 3 years (2022-2024)',
       foundational: 'Include seminal works and foundational papers',
-      mixed: 'Include a mix of recent work and foundational papers'
+      mixed: 'Include a mix of recent work (2022-2024) and foundational papers'
     };
 
     return this.generateContent({
@@ -274,8 +365,10 @@ ${focusPrompt} Maintain academic rigor while enhancing readability and precision
       - Mix of journal articles, conference papers, books, and technical reports
       - Proper DOI and URL fields where applicable
       - Complete author names and affiliations
-      - Accurate publication details
-      - Relevant keywords and abstracts where appropriate`,
+      - Accurate publication details with realistic venues
+      - Relevant keywords and abstracts where appropriate
+      - Ensure all entries are properly formatted BibTeX
+      - Use realistic publication years and venues for the field`,
       type: 'bibliography'
     });
   }
@@ -321,4 +414,5 @@ ${focusPrompt} Maintain academic rigor while enhancing readability and precision
       .map(result => result.value);
   }
 }
+
 export default AIService;

@@ -93,7 +93,7 @@ function App() {
   };
 
   const addChapter = () => {
-    if (thesisData.chapters.length < 6) {
+    if (thesisData.chapters.length < 8) {
       updateThesisData('chapters', [
         ...thesisData.chapters,
         { title: "New Chapter", content: "Chapter content goes here..." }
@@ -114,6 +114,14 @@ function App() {
     } else if (activeTab === 'bibliography') {
       updateThesisData('bibliography', content);
     }
+    setShowAIAssistant(false);
+  };
+
+  const handleThesisRewrite = (newData: Partial<ThesisData>) => {
+    setThesisData(prev => ({
+      ...prev,
+      ...newData
+    }));
     setShowAIAssistant(false);
   };
 
@@ -473,19 +481,19 @@ print(f"Result: {output}")
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900">ThesisTemplate Builder</h1>
-                <p className="text-slate-600">Professional LaTeX thesis generator with AI assistance</p>
+                <p className="text-slate-600">Professional LaTeX thesis generator with dynamic AI assistance</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setShowAIAssistant(!showAIAssistant)}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors duration-200"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <Bot className="h-4 w-4" />
-                <span>AI Assistant</span>
+                <span>Dynamic AI</span>
                 <div className="flex items-center space-x-1 text-xs bg-purple-500 px-2 py-0.5 rounded-full">
                   <Sparkles className="h-3 w-3" />
-                  <span>Free</span>
+                  <span>Smart</span>
                 </div>
               </button>
               <button
@@ -650,7 +658,7 @@ print(f"Result: {output}")
                       <h3 className="text-lg font-semibold text-slate-900">Thesis Chapters</h3>
                       <button
                         onClick={addChapter}
-                        disabled={thesisData.chapters.length >= 6}
+                        disabled={thesisData.chapters.length >= 8}
                         className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
                       >
                         Add Chapter
@@ -793,13 +801,14 @@ print(f"Result: {output}")
             {/* AI Assistant Panel */}
             {showAIAssistant && (
               <AIAssistant
-                type={activeTab === 'chapters' ? 'chapter' : activeTab === 'bibliography' ? 'bibliography' : 'chapter'}
+                type={activeTab === 'chapters' ? 'chapter' : activeTab === 'bibliography' ? 'bibliography' : 'dynamic'}
                 context={{
                   thesisTitle: thesisData.title,
                   chapterIndex: activeChapterIndex || undefined,
                   currentContent: activeChapterIndex !== null ? thesisData.chapters[activeChapterIndex]?.content : undefined
                 }}
                 onContentGenerated={(content) => handleAIContentGenerated(content, activeChapterIndex || undefined)}
+                onThesisRewrite={handleThesisRewrite}
               />
             )}
 
@@ -854,64 +863,64 @@ print(f"Result: {output}")
 
             {/* Features Card */}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Template Features</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Dynamic AI Features</h3>
               <div className="space-y-3 text-sm text-slate-600">
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                  <span>One-click thesis topic change</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                  <span>Smart chapter restructuring</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                  <span>Instant content enhancement</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                  <span>Modern bibliography generation</span>
+                </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                   <span>Professional title page</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Table of contents & lists</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Proper chapter formatting</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Figures & tables support</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Mathematical equations</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Bibliography integration</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Academic page layout</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                  <span>AI-powered content generation</span>
+                  <span>Academic formatting</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                   <span>LaTeX source download</span>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                  <span>PDF compilation</span>
+                </div>
               </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg text-white p-6">
-              <h3 className="text-lg font-semibold mb-4">Quick Stats</h3>
+            <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-xl shadow-lg text-white p-6">
+              <h3 className="text-lg font-semibold mb-4">Thesis Statistics</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-100">Chapters</span>
+                  <span className="text-purple-100">Chapters</span>
                   <span className="font-bold">{thesisData.chapters.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-100">References</span>
+                  <span className="text-purple-100">References</span>
                   <span className="font-bold">{thesisData.bibliography.split('@').length - 1}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-100">Word Count</span>
+                  <span className="text-purple-100">Word Count</span>
                   <span className="font-bold">
                     {thesisData.chapters.reduce((acc, chapter) => acc + chapter.content.split(' ').length, 0)}
                   </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-purple-100">AI Enhanced</span>
+                  <span className="font-bold text-yellow-300">✨ Yes</span>
                 </div>
               </div>
             </div>
