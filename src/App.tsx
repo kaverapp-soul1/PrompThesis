@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Download, FileText, BookOpen, User, GraduationCap, Calendar, Building2, UserCheck, Loader2, CheckCircle, AlertCircle, Bot, Sparkles, Code, Eye } from 'lucide-react';
+import { Download, FileText, BookOpen, User, GraduationCap, Calendar, Building2, UserCheck, Loader2, CheckCircle, AlertCircle, Bot, Sparkles, Code, Eye, BarChart3 } from 'lucide-react';
 import { AIAssistant } from './components/AIAssistant';
+import { GraphGenerator } from './components/GraphGenerator';
 
 interface ThesisData {
   title: string;
@@ -14,6 +15,13 @@ interface ThesisData {
     content: string;
   }>;
   bibliography: string;
+  graphs: Array<{
+    id: string;
+    title: string;
+    type: string;
+    code: string;
+    chapterIndex?: number;
+  }>;
 }
 
 interface CompilationStatus {
@@ -71,16 +79,18 @@ function App() {
   pages={67--78},
   year={2022},
   organization={IEEE}
-}`
+}`,
+    graphs: []
   });
 
-  const [activeTab, setActiveTab] = useState<'basic' | 'chapters' | 'bibliography' | 'preview'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'chapters' | 'bibliography' | 'graphs' | 'preview'>('basic');
   const [compilationStatus, setCompilationStatus] = useState<CompilationStatus>({
     status: 'idle',
     message: ''
   });
   const [activeChapterIndex, setActiveChapterIndex] = useState<number | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showGraphGenerator, setShowGraphGenerator] = useState(false);
 
   const updateThesisData = (field: keyof ThesisData, value: any) => {
     setThesisData(prev => ({ ...prev, [field]: value }));
@@ -125,6 +135,24 @@ function App() {
     setShowAIAssistant(false);
   };
 
+  const handleGraphGenerated = (graphData: any) => {
+    const newGraph = {
+      id: Date.now().toString(),
+      title: graphData.title,
+      type: graphData.type,
+      code: graphData.code,
+      chapterIndex: activeChapterIndex || undefined
+    };
+    
+    updateThesisData('graphs', [...thesisData.graphs, newGraph]);
+    setShowGraphGenerator(false);
+  };
+
+  const removeGraph = (graphId: string) => {
+    const newGraphs = thesisData.graphs.filter(graph => graph.id !== graphId);
+    updateThesisData('graphs', newGraphs);
+  };
+
   const generateLatexFiles = () => {
     // Clean and escape special LaTeX characters
     const escapeLatex = (text: string) => {
@@ -158,6 +186,10 @@ function App() {
 \\usepackage{xcolor}
 \\usepackage[style=ieee,backend=bibtex]{biblatex}
 \\usepackage{hyperref}
+\\usepackage{tikz}
+\\usepackage{pgfplots}
+\\pgfplotsset{compat=1.18}
+\\usetikzlibrary{shapes,arrows,positioning,shadows,calc}
 
 % Bibliography setup
 \\addbibresource{references.bib}
@@ -256,6 +288,9 @@ This thesis presents research on ${cleanTitle.toLowerCase()}. The work contribut
 ${thesisData.chapters.map((chapter, index) => {
       const cleanChapterTitle = escapeLatex(chapter.title);
       const cleanChapterContent = escapeLatex(chapter.content);
+      
+      // Find graphs for this chapter
+      const chapterGraphs = thesisData.graphs.filter(graph => graph.chapterIndex === index);
 
       return `\\chapter{${cleanChapterTitle}}
 \\label{chap:${index + 1}}
@@ -275,6 +310,16 @@ y = f(x) + \\epsilon
 \\end{equation}
 
 Where $y$ represents the output variable, $f(x)$ is the function of input $x$, and $\\epsilon$ is the error term.
+
+${chapterGraphs.map((graph, graphIndex) => `
+% Generated Graph: ${graph.title}
+\\begin{figure}[htbp]
+\\centering
+${graph.code}
+\\caption{${graph.title}}
+\\label{fig:graph${index + 1}_${graphIndex + 1}}
+\\end{figure}
+`).join('')}
 
 % Sample figure placeholder
 \\begin{figure}[htbp]
@@ -332,6 +377,24 @@ def sample_function(x, y):
 output = sample_function(5, 3)
 print(f"Result: {output}")
 \\end{lstlisting}
+
+% All Generated Graphs Appendix
+${thesisData.graphs.length > 0 ? `
+\\chapter{Generated Graphs and Diagrams}
+\\label{app:graphs}
+
+This appendix contains all the dynamically generated graphs and diagrams used throughout the thesis.
+
+${thesisData.graphs.map((graph, index) => `
+\\section{${graph.title}}
+\\begin{figure}[htbp]
+\\centering
+${graph.code}
+\\caption{${graph.title} - Generated using dynamic graph system}
+\\label{fig:appendix_graph${index + 1}}
+\\end{figure}
+`).join('')}
+` : ''}
 
 % Bibliography
 \\newpage
@@ -481,10 +544,21 @@ print(f"Result: {output}")
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900">ThesisTemplate Builder</h1>
-                <p className="text-slate-600">Professional LaTeX thesis generator with dynamic AI assistance</p>
+                <p className="text-slate-600">Professional LaTeX thesis generator with dynamic AI assistance & graph generation</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowGraphGenerator(!showGraphGenerator)}
+                className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>Graph Generator</span>
+                <div className="flex items-center space-x-1 text-xs bg-green-500 px-2 py-0.5 rounded-full">
+                  <Sparkles className="h-3 w-3" />
+                  <span>New</span>
+                </div>
+              </button>
               <button
                 onClick={() => setShowAIAssistant(!showAIAssistant)}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -554,6 +628,16 @@ print(f"Result: {output}")
                 >
                   <FileText className="inline-block h-4 w-4 mr-2" />
                   Bibliography
+                </button>
+                <button
+                  onClick={() => setActiveTab('graphs')}
+                  className={`flex-1 px-6 py-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'graphs'
+                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                >
+                  <BarChart3 className="inline-block h-4 w-4 mr-2" />
+                  Graphs ({thesisData.graphs.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('preview')}
@@ -673,6 +757,16 @@ print(f"Result: {output}")
                             <button
                               onClick={() => {
                                 setActiveChapterIndex(index);
+                                setShowGraphGenerator(true);
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium flex items-center space-x-1 transition-colors duration-200"
+                            >
+                              <BarChart3 className="h-3 w-3" />
+                              <span>Add Graph</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveChapterIndex(index);
                                 setShowAIAssistant(true);
                               }}
                               className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs font-medium flex items-center space-x-1 transition-colors duration-200"
@@ -717,6 +811,29 @@ print(f"Result: {output}")
                               <Sparkles className="h-4 w-4" />
                             </button>
                           </div>
+                          {/* Show graphs for this chapter */}
+                          {thesisData.graphs.filter(graph => graph.chapterIndex === index).length > 0 && (
+                            <div className="mt-4">
+                              <h5 className="text-sm font-medium text-slate-700 mb-2">Graphs in this chapter:</h5>
+                              <div className="space-y-2">
+                                {thesisData.graphs.filter(graph => graph.chapterIndex === index).map((graph) => (
+                                  <div key={graph.id} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <div className="flex items-center space-x-2">
+                                      <BarChart3 className="h-4 w-4 text-green-600" />
+                                      <span className="text-sm font-medium text-green-800">{graph.title}</span>
+                                      <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">{graph.type}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => removeGraph(graph.id)}
+                                      className="text-red-600 hover:text-red-800 text-xs"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -760,6 +877,67 @@ print(f"Result: {output}")
                   </div>
                 )}
 
+                {activeTab === 'graphs' && (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold text-slate-900">Generated Graphs & Diagrams</h3>
+                      <button
+                        onClick={() => setShowGraphGenerator(true)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors duration-200"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Generate New Graph</span>
+                      </button>
+                    </div>
+
+                    {thesisData.graphs.length === 0 ? (
+                      <div className="text-center py-12">
+                        <BarChart3 className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                        <h4 className="text-lg font-medium text-slate-600 mb-2">No Graphs Generated Yet</h4>
+                        <p className="text-slate-500 mb-4">Create professional diagrams and charts for your thesis</p>
+                        <button
+                          onClick={() => setShowGraphGenerator(true)}
+                          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2 mx-auto transition-colors duration-200"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          <span>Create Your First Graph</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {thesisData.graphs.map((graph) => (
+                          <div key={graph.id} className="border border-slate-200 rounded-lg p-6 bg-slate-50">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <h4 className="font-medium text-slate-900">{graph.title}</h4>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className="text-xs text-slate-600 bg-slate-200 px-2 py-1 rounded">{graph.type}</span>
+                                  {graph.chapterIndex !== undefined && (
+                                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                      Chapter {graph.chapterIndex + 1}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => removeGraph(graph.id)}
+                                className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                            <div className="bg-slate-900 rounded-lg p-3 overflow-auto max-h-32">
+                              <pre className="text-green-400 text-xs font-mono whitespace-pre-wrap">
+                                {graph.code.slice(0, 200)}...
+                              </pre>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {activeTab === 'preview' && (
                   <div className="space-y-6">
                     <div className="flex justify-between items-center">
@@ -798,6 +976,17 @@ print(f"Result: {output}")
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Graph Generator Panel */}
+            {showGraphGenerator && (
+              <GraphGenerator
+                onGraphGenerated={handleGraphGenerated}
+                context={{
+                  thesisTitle: thesisData.title,
+                  chapterTitle: activeChapterIndex !== null ? thesisData.chapters[activeChapterIndex]?.title : undefined
+                }}
+              />
+            )}
+
             {/* AI Assistant Panel */}
             {showAIAssistant && (
               <AIAssistant
@@ -863,8 +1052,16 @@ print(f"Result: {output}")
 
             {/* Features Card */}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Dynamic AI Features</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Enhanced Features</h3>
               <div className="space-y-3 text-sm text-slate-600">
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                  <span>Dynamic graph generation (TikZ/Mermaid/Chart.js)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                  <span>Professional diagram templates</span>
+                </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
                   <span>One-click thesis topic change</span>
@@ -889,24 +1086,20 @@ print(f"Result: {output}")
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                   <span>Academic formatting</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                  <span>LaTeX source download</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                  <span>PDF compilation</span>
-                </div>
               </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-xl shadow-lg text-white p-6">
+            <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 rounded-xl shadow-lg text-white p-6">
               <h3 className="text-lg font-semibold mb-4">Thesis Statistics</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-purple-100">Chapters</span>
                   <span className="font-bold">{thesisData.chapters.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-purple-100">Graphs</span>
+                  <span className="font-bold">{thesisData.graphs.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-purple-100">References</span>
